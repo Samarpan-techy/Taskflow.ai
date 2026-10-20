@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="night">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow AI - Task Processing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root, [data-theme="night"] {
+            --bg-main: #070b14;
+            --bg-nav: #0d121f;
+            --accent-1: #00e5ff;
+            --accent-2: #a855f7;
+            --text-main: #ffffff;
+            --text-muted: #9ca3af;
+            --glossy-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+            --card-border: rgba(0, 229, 255, 0.3);
+            --card-bg-gradient: linear-gradient(135deg, rgba(0, 229, 255, 0.08), rgba(168, 85, 247, 0.12));
+        }
+
+        [data-theme="day"] {
+            --bg-main: #f3f4f6;
+            --bg-nav: #ffffff;
+            --accent-1: #2563eb;
+            --accent-2: #7c3aed;
+            --text-main: #111827;
+            --text-muted: #4b5563;
+            --glossy-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --card-border: rgba(37, 99, 235, 0.2);
+            --card-bg-gradient: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(124, 58, 237, 0.12));
+        }
+
+        [data-theme="fire"] {
+            --bg-main: #0a0a0a;
+            --bg-nav: #1a0a00;
+            --accent-1: #ff8c00;
+            --accent-2: #ff2a00;
+            --text-main: #ffffff;
+            --text-muted: #d1d5db;
+            --glossy-shadow: 0 0 15px rgba(255, 140, 0, 0.4);
+            --card-border: rgba(255, 140, 0, 0.4);
+            --card-bg-gradient: linear-gradient(135deg, rgba(255, 140, 0, 0.08), rgba(255, 42, 0, 0.12));
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            overflow: hidden;
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, var(--accent-1), var(--accent-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .glossy-task {
+            color: var(--text-main);
+            text-shadow: 0 0 5px var(--text-main), 0 0 10px var(--accent-1);
+            -webkit-text-stroke: 1px var(--accent-1);
+        }
+        .glossy-flow {
+            background: linear-gradient(180deg, var(--accent-1) 0%, var(--accent-2) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px var(--accent-1));
+            -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
+        }
+        .glossy-ai-box {
+            background: linear-gradient(135deg, var(--bg-nav) 0%, var(--accent-2) 100%);
+            border: 2px solid var(--accent-1);
+            box-shadow: 0 0 15px var(--accent-1), inset 0 0 10px var(--accent-2);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            -webkit-text-stroke: 1px var(--text-main);
+        }
+        [data-theme="day"] .glossy-task { text-shadow: none; -webkit-text-stroke: 0; color: var(--accent-1); }
+        [data-theme="day"] .glossy-flow { -webkit-text-stroke: 0; filter: none; }
+        [data-theme="day"] .glossy-ai-box { color: white; -webkit-text-stroke: 0; border: none; box-shadow: none; }
+
+        .nav-item {
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+            border-radius: 12px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .nav-item:hover {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+        }
+        .nav-item.active {
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            color: #ffffff;
+            box-shadow: 0 4px 15px var(--glossy-shadow);
+        }
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .theme-btn { transition: all 0.3s ease; opacity: 0.4; }
+        .theme-btn.active {
+            opacity: 1;
+            background-color: var(--bg-main);
+            box-shadow: 0 0 10px var(--accent-1);
+            border-color: var(--accent-1);
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 10px; }
+
+        .process-card {
+            background-color: var(--bg-nav);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            transition: all 0.2s ease;
+        }
+        .process-card:hover {
+            border-color: var(--accent-1);
+            box-shadow: 0 0 12px rgba(0, 229, 255, 0.15);
+        }
+        .status-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+        }
+        .status-processing { background: rgba(0, 229, 255, 0.15); color: var(--accent-1); border: 1px solid var(--accent-1); }
+        .status-queued { background: rgba(168, 85, 247, 0.15); color: var(--accent-2); border: 1px solid var(--accent-2); }
+        .status-completed { background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid #22c55e; }
+        .status-failed { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; }
+
+        .progress-bar-bg {
+            background: var(--bg-main);
+            border-radius: 9999px;
+            height: 6px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 9999px;
+            background: linear-gradient(to right, var(--accent-1), var(--accent-2));
+            transition: width 0.6s ease;
+        }
+
+        .upgrade-page { display: none; }
+        .upgrade-page.active { display: block; }
+        .processing-page.hidden { display: none; }
+
+        .upgrade-card {
+            background: var(--card-bg-gradient);
+            border: 1px solid var(--card-border);
+            border-radius: 1.25rem;
+            padding: 2rem 1.75rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .upgrade-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 229, 255, 0.25);
+        }
+        .upgrade-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 30%, rgba(0, 229, 255, 0.08), transparent 70%);
+            pointer-events: none;
+        }
+        .upgrade-btn {
+            background: linear-gradient(to right, #2563eb, #7c3aed);
+            color: #ffffff;
+            font-weight: 700;
+            padding: 0.8rem 2rem;
+            border-radius: 0.75rem;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+            font-size: 1rem;
+            letter-spacing: 0.02em;
+        }
+        .upgrade-btn:hover {
+            opacity: 0.92;
+            transform: scale(1.01);
+            box-shadow: 0 6px 25px rgba(124, 58, 237, 0.5);
+        }
+        [data-theme="fire"] .upgrade-btn {
+            background: linear-gradient(to right, #ff8c00, #ff2a00);
+            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4);
+        }
+        [data-theme="fire"] .upgrade-btn:hover {
+            box-shadow: 0 6px 25px rgba(255, 42, 0, 0.5);
+        }
+
+        .feature-check {
+            color: var(--accent-1);
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .plan-card {
+            background-color: var(--bg-nav);
+            border: 1px solid var(--card-border);
+            border-radius: 1.5rem;
+            padding: 1.75rem;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .plan-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-1);
+            box-shadow: 0 8px 25px rgba(0, 229, 255, 0.15);
+        }
+        .plan-card.popular {
+            border-color: var(--accent-2);
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.2);
+            position: relative;
+        }
+        .plan-card.popular::after {
+            content: 'MOST POPULAR';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(to right, var(--accent-1), var(--accent-2));
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.25rem 1rem;
+            border-radius: 9999px;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body class="flex h-screen w-full overflow-hidden">
+
+    <aside id="sidebar" class="w-64 flex-shrink-0 flex flex-col border-r transition-all duration-300 absolute md:relative z-40 h-full -translate-x-full md:translate-x-0" style="background-color: var(--bg-nav); border-color: var(--card-border);">
+        
+        <div class="h-16 flex items-center px-4 border-b" style="border-color: var(--card-border);">
+            <a href="Index.html" class="flex items-center gap-1 text-xl font-black tracking-widest uppercase cursor-pointer hover:scale-105 transition-transform">
+                <span class="glossy-task">Task</span>
+                <span class="glossy-flow">Flow</span>
+                <span class="glossy-ai-box text-sm px-1.5 py-0.5 rounded-md ml-1">AI</span>
+            </a>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto p-4 space-y-1.5">
+            <a href="Index.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                Dashboard
+            </a>
+            <a href="task.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Add Task
+            </a>
+           
+            <a href="task-processing.html" class="nav-item active">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Task Processing
+            </a>
+            <a href="Priority-engine.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Priority Engine
+            </a>
+            <a href="recommendation.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                Recommendations
+            </a>
+            <a href="calender.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                Calendar View
+            </a>
+           
+            <a href="task-history.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Task History
+            </a>
+            <a href="setting.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Settings
+            </a>
+        </nav>
+
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto relative">
+        
+        <div id="mobileOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
+
+        <nav class="w-full flex flex-wrap justify-between items-center p-4 gap-4 sticky top-0 z-20 transition-colors duration-300" style="background-color: var(--bg-main); border-bottom: 1px solid var(--card-border);">
+            
+            <button onclick="toggleSidebar()" class="md:hidden text-2xl" style="color: var(--text-main);">☰</button>
+
+            <div class="flex items-center gap-4 flex-shrink-0 order-2 md:order-3 ml-auto">
+                <div class="flex items-center rounded-xl p-1 gap-1" style="background-color: var(--bg-nav); border: 1px solid var(--card-border);">
+                    <button onclick="setTheme('day')" class="theme-btn text-lg p-1.5 rounded-lg border border-transparent hover:scale-110" title="Day">☀️</button>
+                    <button onclick="setTheme('night')" class="theme-btn text-lg p-1.5 rounded-lg border border-transparent hover:scale-110 active" title="Night">🌙</button>
+                    <button onclick="setTheme('fire')" class="theme-btn text-lg p-1.5 rounded-lg border border-transparent hover:scale-110" title="Fire">🔥</button>
+                </div>
+            </div>
+        </nav>
+
+        <div id="processingPage" class="processing-page p-4 md:p-6 max-w-7xl mx-auto w-full">
+            
+            <div class="w-full border rounded-3xl p-6 md:p-8 relative overflow-hidden transition-colors duration-300 mb-6" style="background-color: var(--bg-nav); border-color: var(--card-border); box-shadow: var(--glossy-shadow);">
+                <div class="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[120px] opacity-20 pointer-events-none" style="background-color: var(--accent-1);"></div>
+                <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full blur-[120px] opacity-20 pointer-events-none" style="background-color: var(--accent-2);"></div>
+
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold tracking-wide mb-2 uppercase" style="color: var(--accent-1);">⚙️ Task Processing Engine</p>
+                        <h1 class="text-3xl md:text-5xl font-bold tracking-tight mb-4" style="color: var(--text-main);">
+                            AI <span class="gradient-text">Processing</span> Pipeline
+                        </h1>
+                        <p class="text-sm max-w-lg leading-relaxed" style="color: var(--text-muted);">
+                            Watch as AI analyzes, categorizes, and prioritizes your tasks in real-time. 
+                            Track progress and review completed processing jobs.
+                        </p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center">
+                                <p class="text-2xl font-bold" id="metric-processed" style="color: var(--accent-1);">0</p>
+                                <p class="text-xs" style="color: var(--text-muted);">Processed Today</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold" id="metric-queue" style="color: var(--accent-2);">0</p>
+                                <p class="text-xs" style="color: var(--text-muted);">In Queue</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="process-card text-center">
+                    <p class="text-xs font-semibold uppercase tracking-wider mb-1" style="color: var(--text-muted);">Active Jobs</p>
+                    <p class="text-2xl font-bold" id="metric-active" style="color: var(--accent-1);">0</p>
+                </div>
+                <div class="process-card text-center">
+                    <p class="text-xs font-semibold uppercase tracking-wider mb-1" style="color: var(--text-muted);">Completed</p>
+                    <p class="text-2xl font-bold" id="metric-completed" style="color: #22c55e;">0</p>
+                </div>
+                <div class="process-card text-center">
+                    <p class="text-xs font-semibold uppercase tracking-wider mb-1" style="color: var(--text-muted);">Queued</p>
+                    <p class="text-2xl font-bold" id="metric-queued" style="color: var(--accent-2);">0</p>
+                </div>
+                <div class="process-card text-center">
+                    <p class="text-xs font-semibold uppercase tracking-wider mb-1" style="color: var(--text-muted);">Failed</p>
+                    <p class="text-2xl font-bold" id="metric-failed" style="color: #ef4444;">0</p>
+                </div>
+            </div>
+
+            <div class="w-full rounded-2xl p-6 shadow-lg" style="background-color: var(--bg-nav); border: 1px solid var(--card-border);">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold" style="color: var(--text-main);">Processing Queue</h3>
+                    <button onclick="loadProcessingQueue()" class="text-xs hover:underline" style="color: var(--accent-1);">Refresh ↻</button>
+                </div>
+                <div class="space-y-4" id="processing-queue-container">
+                    <p class="text-sm text-center py-4" style="color: var(--text-muted);">Loading processing queue...</p>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="upgradePage" class="upgrade-page p-4 md:p-6 max-w-7xl mx-auto w-full">
+
+            <div class="text-center mb-10">
+                <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-3" style="color: var(--text-main);">
+                    Unlock Your <span class="gradient-text">Full Potential</span>
+                </h1>
+                <p class="text-base max-w-2xl mx-auto" style="color: var(--text-muted);">
+                    Upgrade to TaskFlow Pro and let AI supercharge your productivity with unlimited tasks, deep insights, and smart automation.
+                </p>
+            </div>
+
+            <div class="max-w-md mx-auto mb-12">
+                <div class="upgrade-card">
+                    <h3 class="text-2xl font-extrabold mb-2" style="color: var(--text-main);">Upgrade to Pro</h3>
+                    <p class="text-sm mb-5" style="color: var(--text-muted);">Unlock AI insights & unlimited tasks.</p>
+                    <button class="upgrade-btn" onclick="alert('Redirecting to payment gateway... (Demo)')">
+                        Upgrade Now
+                    </button>
+                    <p class="text-xs mt-3" style="color: var(--text-muted);">No credit card required for trial</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div class="plan-card">
+                    <h3 class="text-lg font-bold mb-1" style="color: var(--text-main);">Free</h3>
+                    <p class="text-sm mb-4" style="color: var(--text-muted);">For getting started</p>
+                    <div class="text-3xl font-bold mb-4" style="color: var(--text-main);">₹0<span class="text-sm font-normal" style="color: var(--text-muted);">/month</span></div>
+                    <ul class="space-y-2 text-sm mb-6" style="color: var(--text-muted);">
+                        <li><span class="feature-check">✓</span> Up to 20 tasks</li>
+                        <li><span class="feature-check">✓</span> Basic AI suggestions</li>
+                        <li><span class="feature-check">✓</span> Calendar view</li>
+                        <li><span class="feature-check">✓</span> Standard support</li>
+                    </ul>
+                    <button class="w-full py-2.5 rounded-lg font-semibold text-sm transition-all" style="background-color: var(--bg-main); color: var(--text-main); border: 1px solid var(--card-border);">Current Plan</button>
+                </div>
+
+                <div class="plan-card popular">
+                    <h3 class="text-lg font-bold mb-1" style="color: var(--accent-2);">Pro</h3>
+                    <p class="text-sm mb-4" style="color: var(--text-muted);">For power users</p>
+                    <div class="text-3xl font-bold mb-4" style="color: var(--text-main);">₹499<span class="text-sm font-normal" style="color: var(--text-muted);">/month</span></div>
+                    <ul class="space-y-2 text-sm mb-6" style="color: var(--text-muted);">
+                        <li><span class="feature-check">✓</span> Unlimited tasks</li>
+                        <li><span class="feature-check">✓</span> Advanced AI insights</li>
+                        <li><span class="feature-check">✓</span> Priority engine</li>
+                        <li><span class="feature-check">✓</span> Personalized recommendations</li>
+                        <li><span class="feature-check">✓</span> Priority support</li>
+                    </ul>
+                    <button class="upgrade-btn text-sm" onclick="alert('Pro plan selected! (Demo)')">Upgrade Now</button>
+                </div>
+
+                <div class="plan-card">
+                    <h3 class="text-lg font-bold mb-1" style="color: var(--text-main);">Team</h3>
+                    <p class="text-sm mb-4" style="color: var(--text-muted);">For collaboration</p>
+                    <div class="text-3xl font-bold mb-4" style="color: var(--text-main);">₹999<span class="text-sm font-normal" style="color: var(--text-muted);">/month</span></div>
+                    <ul class="space-y-2 text-sm mb-6" style="color: var(--text-muted);">
+                        <li><span class="feature-check">✓</span> Everything in Pro</li>
+                        <li><span class="feature-check">✓</span> Team collaboration (up to 10)</li>
+                        <li><span class="feature-check">✓</span> Shared workspaces</li>
+                        <li><span class="feature-check">✓</span> Admin dashboard</li>
+                        <li><span class="feature-check">✓</span> Dedicated support</li>
+                    </ul>
+                    <button class="w-full py-2.5 rounded-lg font-semibold text-sm transition-all" style="background: linear-gradient(to right, var(--accent-1), var(--accent-2)); color: #fff;" onclick="alert('Team plan selected! (Demo)')">Get Team</button>
+                </div>
+            </div>
+
+            <div class="max-w-3xl mx-auto text-center mb-8">
+                <p class="text-xs" style="color: var(--text-muted);">
+                    🔒 Secure payment · Cancel anytime · 7-day free trial on Pro
+                </p>
+            </div>
+
+            <div class="text-center">
+                <button onclick="hideUpgradePage()" class="text-sm font-medium transition-all hover:underline" style="color: var(--accent-1);">
+                    ← Back to Task Processing
+                </button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        function setTheme(themeName) {
+            document.documentElement.setAttribute('data-theme', themeName);
+            localStorage.setItem('taskflow-theme', themeName);
+            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.theme-btn[onclick="setTheme('${themeName}')"]`).classList.add('active');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function showUpgradePage() {
+            document.getElementById('processingPage').classList.add('hidden');
+            document.getElementById('upgradePage').classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function hideUpgradePage() {
+            document.getElementById('upgradePage').classList.remove('active');
+            document.getElementById('processingPage').classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelector('a[href="task-processing.html"]').classList.add('active');
+            document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function loadProcessingQueue() {
+            const container = document.getElementById('processing-queue-container');
+            if (!container) return;
+
+            try {
+                const response = await fetch('http://127.0.0.1:8080/api/get-processing');
+                if (!response.ok) throw new Error("Server error");
+                
+                const jobs = await response.json();
+
+                let active = 0, completed = 0, queued = 0, failed = 0;
+                let html = '';
+
+                if (jobs.length === 0) {
+                    container.innerHTML = '<p class="text-sm text-center py-4" style="color: var(--text-muted);">No jobs in queue. Add or import tasks to start processing!</p>';
+                    document.getElementById('metric-active').innerText = 0;
+                    document.getElementById('metric-completed').innerText = 0;
+                    document.getElementById('metric-queued').innerText = 0;
+                    document.getElementById('metric-failed').innerText = 0;
+                    document.getElementById('metric-processed').innerText = 0;
+                    document.getElementById('metric-queue').innerText = 0;
+                    return;
+                }
+
+                jobs.forEach(job => {
+                    if (job.status === 'Processing') active++;
+                    else if (job.status === 'Completed') completed++;
+                    else if (job.status === 'Queued') queued++;
+                    else if (job.status === 'Failed') failed++;
+
+                    let badgeClass = "status-queued";
+                    let iconHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                    let iconColor = "rgba(168, 85, 247, 0.15)";
+                    let progressStyle = `width: ${job.progress}%;`;
+                    
+                    if (job.status === 'Processing') {
+                        badgeClass = "status-processing";
+                        iconHTML = `<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>`;
+                        iconColor = "rgba(0, 229, 255, 0.15)";
+                    } else if (job.status === 'Completed') {
+                        badgeClass = "status-completed";
+                        iconHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+                        iconColor = "rgba(34, 197, 94, 0.15)";
+                    } else if (job.status === 'Failed') {
+                        badgeClass = "status-failed";
+                        iconHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+                        iconColor = "rgba(239, 68, 68, 0.15)";
+                        progressStyle = `width: ${job.progress}%; background: #ef4444;`;
+                    }
+
+                    html += `
+                        <div class="process-card">
+                            <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-lg" style="background: ${iconColor}; color: ${job.status === 'Processing' ? 'var(--accent-1)' : job.status === 'Completed' ? '#22c55e' : job.status === 'Failed' ? '#ef4444' : 'var(--accent-2)'};">
+                                        ${iconHTML}
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-semibold" style="color: var(--text-main);">${job.title}</p>
+                                        <p class="text-xs" style="color: var(--text-muted);">Task ID: ${job.id} • ${job.timeInfo}</p>
+                                    </div>
+                                </div>
+                                <span class="status-badge ${badgeClass}">${job.status}</span>
+                            </div>
+                            <div class="progress-bar-bg mb-2">
+                                <div class="progress-bar-fill" style="${progressStyle}"></div>
+                            </div>
+                            <div class="flex justify-between text-xs" style="color: var(--text-muted);">
+                                <span>${job.statusText}</span>
+                                <span>${job.progress}%</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+
+                document.getElementById('metric-active').innerText = active;
+                document.getElementById('metric-completed').innerText = completed;
+                document.getElementById('metric-queued').innerText = queued;
+                document.getElementById('metric-failed').innerText = failed;
+                
+                document.getElementById('metric-processed').innerText = completed + failed;
+                document.getElementById('metric-queue').innerText = queued;
+
+            } catch (error) {
+                console.warn("C++ Backend offline. Loading mock data for UI testing.");
+                container.innerHTML = '<p class="text-sm text-center py-4 text-red-500">⚠️ C++ Server is offline. Showing demo data.</p>';
+                
+                const mockJobs = [
+                    { id: "PRC-2041", title: "DBMS Assignment Analysis", status: "Processing", progress: 67, statusText: "Analyzing content...", timeInfo: "Started 2 min ago" },
+                    { id: "PRC-2042", title: "Meeting Notes Summarization", status: "Queued", progress: 0, statusText: "Waiting in queue...", timeInfo: "Queued 1 min ago" },
+                    { id: "PRC-2038", title: "Project Proposal Prioritization", status: "Completed", progress: 100, statusText: "AI analysis finished successfully.", timeInfo: "Completed 15 min ago" },
+                    { id: "PRC-2035", title: "Unstructured Data Parsing", status: "Failed", progress: 34, statusText: "Error: Invalid input format. Please retry.", timeInfo: "Failed 1 hr ago" }
+                ];
+
+                let html = '';
+                mockJobs.forEach(job => {
+                    let badgeClass = job.status === 'Processing' ? "status-processing" : job.status === 'Completed' ? "status-completed" : job.status === 'Failed' ? "status-failed" : "status-queued";
+                    let iconHTML = job.status === 'Processing' ? `<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>` : job.status === 'Completed' ? `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>` : job.status === 'Failed' ? `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>` : `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                    let iconColor = job.status === 'Processing' ? "rgba(0, 229, 255, 0.15)" : job.status === 'Completed' ? "rgba(34, 197, 94, 0.15)" : job.status === 'Failed' ? "rgba(239, 68, 68, 0.15)" : "rgba(168, 85, 247, 0.15)";
+                    let progressStyle = job.status === 'Failed' ? `width: ${job.progress}%; background: #ef4444;` : `width: ${job.progress}%;`;
+
+                    html += `
+                        <div class="process-card">
+                            <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-lg" style="background: ${iconColor}; color: ${job.status === 'Processing' ? 'var(--accent-1)' : job.status === 'Completed' ? '#22c55e' : job.status === 'Failed' ? '#ef4444' : 'var(--accent-2)'};">
+                                        ${iconHTML}
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-semibold" style="color: var(--text-main);">${job.title}</p>
+                                        <p class="text-xs" style="color: var(--text-muted);">Task ID: ${job.id} • ${job.timeInfo}</p>
+                                    </div>
+                                </div>
+                                <span class="status-badge ${badgeClass}">${job.status}</span>
+                            </div>
+                            <div class="progress-bar-bg mb-2">
+                                <div class="progress-bar-fill" style="${progressStyle}"></div>
+                            </div>
+                            <div class="flex justify-between text-xs" style="color: var(--text-muted);">
+                                <span>${job.statusText}</span>
+                                <span>${job.progress}%</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML += html;
+            }
+        }
+
+        window.onload = () => {
+            const savedTheme = localStorage.getItem('taskflow-theme') || 'night';
+            setTheme(savedTheme);
+            loadProcessingQueue();
+            
+            setInterval(loadProcessingQueue, 3000);
+        };
+    </script>
+</body>
+</html>

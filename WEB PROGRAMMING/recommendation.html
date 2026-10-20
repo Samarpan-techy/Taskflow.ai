@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="night">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow AI · Recommendations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root, [data-theme="night"] {
+            --bg-main: #070b14; --bg-nav: #0d121f; --accent-1: #00e5ff; --accent-2: #a855f7;
+            --text-main: #ffffff; --text-muted: #9ca3af;
+            --glossy-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+            --card-border: rgba(0, 229, 255, 0.3);
+            --card-bg-gradient: linear-gradient(135deg, rgba(0, 229, 255, 0.08), rgba(168, 85, 247, 0.12));
+        }
+        [data-theme="day"] {
+            --bg-main: #f3f4f6; --bg-nav: #ffffff; --accent-1: #2563eb; --accent-2: #7c3aed;
+            --text-main: #111827; --text-muted: #4b5563;
+            --glossy-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --card-border: rgba(37, 99, 235, 0.2);
+            --card-bg-gradient: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(124, 58, 237, 0.12));
+        }
+        [data-theme="fire"] {
+            --bg-main: #0a0a0a; --bg-nav: #1a0a00; --accent-1: #ff8c00; --accent-2: #ff2a00;
+            --text-main: #ffffff; --text-muted: #d1d5db;
+            --glossy-shadow: 0 0 15px rgba(255, 140, 0, 0.4);
+            --card-border: rgba(255, 140, 0, 0.4);
+            --card-bg-gradient: linear-gradient(135deg, rgba(255, 140, 0, 0.08), rgba(255, 42, 0, 0.12));
+        }
+        body { background-color: var(--bg-main); color: var(--text-main); transition: background-color 0.3s ease, color 0.3s ease; overflow: hidden; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+        .gradient-text { background: linear-gradient(to right, var(--accent-1), var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent; }
+        .glossy-task { color: var(--text-main); text-shadow: 0 0 5px var(--text-main), 0 0 10px var(--accent-1); -webkit-text-stroke: 1px var(--accent-1); }
+        .glossy-flow { background: linear-gradient(180deg, var(--accent-1) 0%, var(--accent-2) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 10px var(--accent-1)); -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3); }
+        .glossy-ai-box { background: linear-gradient(135deg, var(--bg-nav) 0%, var(--accent-2) 100%); border: 2px solid var(--accent-1); box-shadow: 0 0 15px var(--accent-1), inset 0 0 10px var(--accent-2); text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); -webkit-text-stroke: 1px var(--text-main); }
+        [data-theme="day"] .glossy-task { text-shadow: none; -webkit-text-stroke: 0; color: var(--accent-1); }
+        [data-theme="day"] .glossy-flow { -webkit-text-stroke: 0; filter: none; }
+        [data-theme="day"] .glossy-ai-box { color: white; -webkit-text-stroke: 0; border: none; box-shadow: none; }
+        .nav-item { color: var(--text-muted); transition: all 0.2s ease; border-radius: 12px; text-decoration: none; display: flex; align-items: center; gap: 12px; padding: 12px 16px; font-weight: 500; font-size: 14px; }
+        .nav-item:hover { background-color: var(--bg-main); color: var(--text-main); }
+        .nav-item.active { background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); color: #ffffff; box-shadow: 0 4px 15px var(--glossy-shadow); }
+        .nav-item svg { width: 20px; height: 20px; transition: all 0.2s ease; flex-shrink: 0; }
+        .theme-btn { transition: all 0.3s ease; opacity: 0.4; }
+        .theme-btn.active { opacity: 1; background-color: var(--bg-main); box-shadow: 0 0 10px var(--accent-1); border-color: var(--accent-1); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 10px; }
+        .rec-card { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s; }
+        .rec-card:hover { transform: translateY(-3px); box-shadow: 0 12px 25px -10px var(--accent-1); border-color: var(--accent-1) !important; }
+        .badge-ai { background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); color: white; font-weight: 600; font-size: 0.65rem; padding: 0.25rem 0.6rem; border-radius: 9999px; letter-spacing: 0.3px; }
+        .insight-icon { background-color: rgba(0, 229, 255, 0.1); color: var(--accent-1); border-radius: 9999px; width: 2.25rem; height: 2.25rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+        [data-theme="fire"] .insight-icon { background-color: rgba(255, 140, 0, 0.15); }
+        .upgrade-page { display: none; }
+        .upgrade-page.active { display: block; }
+        .recommendations-page.hidden { display: none; }
+        .upgrade-card { background: var(--card-bg-gradient); border: 1px solid var(--card-border); border-radius: 1.25rem; padding: 2rem 1.75rem; text-align: center; position: relative; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .upgrade-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0, 229, 255, 0.25); }
+        .upgrade-card::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 30% 30%, rgba(0, 229, 255, 0.08), transparent 70%); pointer-events: none; }
+        .upgrade-btn { background: linear-gradient(to right, #2563eb, #7c3aed); color: #ffffff; font-weight: 700; padding: 0.8rem 2rem; border-radius: 0.75rem; width: 100%; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); font-size: 1rem; letter-spacing: 0.02em; }
+        .upgrade-btn:hover { opacity: 0.92; transform: scale(1.01); box-shadow: 0 6px 25px rgba(124, 58, 237, 0.5); }
+        [data-theme="fire"] .upgrade-btn { background: linear-gradient(to right, #ff8c00, #ff2a00); box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4); }
+        [data-theme="fire"] .upgrade-btn:hover { box-shadow: 0 6px 25px rgba(255, 42, 0, 0.5); }
+        .feature-check { color: var(--accent-1); font-weight: bold; margin-right: 0.5rem; }
+        .plan-card { background-color: var(--bg-nav); border: 1px solid var(--card-border); border-radius: 1.5rem; padding: 1.75rem; transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
+        .plan-card:hover { transform: translateY(-4px); border-color: var(--accent-1); box-shadow: 0 8px 25px rgba(0, 229, 255, 0.15); }
+        .plan-card.popular { border-color: var(--accent-2); box-shadow: 0 0 25px rgba(168, 85, 247, 0.2); position: relative; }
+        .plan-card.popular::after { content: 'MOST POPULAR'; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(to right, var(--accent-1), var(--accent-2)); color: #fff; font-size: 0.7rem; font-weight: 700; padding: 0.25rem 1rem; border-radius: 9999px; letter-spacing: 0.05em; }
+    </style>
+</head>
+<body class="flex h-screen w-full overflow-hidden">
+
+    <aside id="sidebar" class="w-64 flex-shrink-0 flex flex-col border-r transition-all duration-300 absolute md:relative z-40 h-full -translate-x-full md:translate-x-0" style="background-color: var(--bg-nav); border-color: var(--card-border);">
+        <div class="h-16 flex items-center px-4 border-b" style="border-color: var(--card-border);">
+            <a href="Index.html" class="flex items-center gap-1 text-xl font-black tracking-widest uppercase cursor-pointer hover:scale-105 transition-transform">
+                <span class="glossy-task">Task</span>
+                <span class="glossy-flow">Flow</span>
+                <span class="glossy-ai-box text-sm px-1.5 py-0.5 rounded-md ml-1">AI</span>
+            </a>
+        </div>
+        <nav class="flex-1 overflow-y-auto p-4 space-y-1.5">
+            <a href="Index.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                Dashboard
+            </a>
+            <a href="task.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Add Task
+            </a>
+           
+            <a href="task-processing.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Task Processing
+            </a>
+            <a href="Priority-engine.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Priority Engine
+            </a>
+            <a href="recommendation.html" class="nav-item active">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                Recommendations
+            </a>
+            <a href="calender.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                Calendar View
+            </a>
+            
+            <a href="task-history.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Task History
+            </a>
+            <a href="setting.html" class="nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Settings
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto relative">
+        <div id="mobileOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
+
+        <nav class="w-full flex flex-wrap justify-between items-center p-4 gap-4 sticky top-0 z-20 transition-colors duration-300" style="background-color: var(--bg-main); border-bottom: 1px solid var(--card-border);">
+            <button onclick="toggleSidebar()" class="md:hidden text-2xl" style="color: var(--text-main);">☰</button>
+
+            <div class="flex items-center gap-4 flex-shrink-0 order-2 md:order-3 ml-auto">
+                <div class="flex items-center rounded-xl p-1 gap-1" style="background-color: var(--bg-nav); border: 1px solid var(--card-border);">
+                    <button onclick="setTheme('day')" class="theme-btn text-lg p-1.5 rounded-lg border border-transparent hover:scale-110" title="Day">☀️</button>
+                    <button onclick="setTheme('night')" class="theme-btn text-lg p-1.5 rounded-lg border border-transparent hover:scale-110 active" title="Night">🌙</button>
+                    <button onclick="setTheme('fire')" class="theme-btn text-lg p-1.5 rounded-lg border border-transparent hover:scale-110" title="Fire">🔥</button>
+                </div>
+            </div>
+        </nav>
+
+        <div id="recommendationsPage" class="recommendations-page p-4 md:p-6 max-w-7xl mx-auto w-full">
+            <div class="w-full border rounded-3xl p-6 md:p-8 relative overflow-hidden transition-colors duration-300 mb-6" style="background-color: var(--bg-nav); border-color: var(--card-border); box-shadow: var(--glossy-shadow);">
+                <div class="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[120px] opacity-20 pointer-events-none" style="background-color: var(--accent-1);"></div>
+                <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full blur-[120px] opacity-20 pointer-events-none" style="background-color: var(--accent-2);"></div>
+
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="badge-ai">AI-POWERED</span>
+                            <span class="text-xs" style="color: var(--text-muted);" id="lastUpdated">Updated just now</span>
+                        </div>
+                        <h1 class="text-3xl md:text-5xl font-bold tracking-tight mb-3" style="color: var(--text-main);">
+                            Smart <span class="gradient-text">Recommendations</span>
+                        </h1>
+                        <p class="text-sm max-w-2xl leading-relaxed" style="color: var(--text-muted);">
+                            Based on your task patterns, deadlines, and priority engine — here are personalized suggestions to boost your productivity.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="hidden md:flex flex-col items-end">
+                            <span class="text-xs font-medium" style="color: var(--text-muted);">AI Confidence</span>
+                            <span class="text-2xl font-bold" id="aiConfidence" style="color: var(--accent-1);">0%</span>
+                        </div>
+                        <button onclick="loadRecommendations()" class="text-sm font-bold px-6 py-3 rounded-xl transition-all shadow-lg transform hover:-translate-y-1 hover:opacity-90 flex items-center gap-2" style="background: linear-gradient(to right, var(--accent-1), var(--accent-2)); color: #ffffff;">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div class="rounded-2xl p-4 flex items-center gap-4" style="background-color: var(--bg-nav); border: 1px solid var(--card-border);">
+                    <div class="insight-icon">🎯</div>
+                    <div><p class="text-xs" style="color: var(--text-muted);">Top priority</p><p class="text-sm font-semibold" style="color: var(--text-main);" id="topPriorityText">No tasks yet</p></div>
+                </div>
+                <div class="rounded-2xl p-4 flex items-center gap-4" style="background-color: var(--bg-nav); border: 1px solid var(--card-border);">
+                    <div class="insight-icon">⏳</div>
+                    <div><p class="text-xs" style="color: var(--text-muted);">Suggested focus block</p><p class="text-sm font-semibold" style="color: var(--text-main);" id="focusBlockText">—</p></div>
+                </div>
+                <div class="rounded-2xl p-4 flex items-center gap-4" style="background-color: var(--bg-nav); border: 1px solid var(--card-border);">
+                    <div class="insight-icon">✨</div>
+                    <div><p class="text-xs" style="color: var(--text-muted);">AI tip</p><p class="text-sm font-semibold" style="color: var(--text-main);" id="aiTipText">—</p></div>
+                </div>
+            </div>
+
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2" style="color: var(--text-main);">
+                <span>📌</span> Personalised for you
+            </h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8" id="recommendations-container">
+                <p class="text-sm text-center py-4 col-span-2" style="color: var(--text-muted);">Loading recommendations from C++ backend...</p>
+            </div>
+
+            <div class="w-full rounded-2xl p-6 shadow-lg" style="background-color: var(--bg-nav); border: 1px solid var(--card-border);">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold flex items-center gap-2" style="color: var(--text-main);">
+                        <span>🤖</span> Latest AI insights
+                    </h3>
+                    <button class="text-xs hover:underline" style="color: var(--accent-1);">View all →</button>
+                </div>
+                <div class="space-y-4" id="insights-container">
+                    <p class="text-sm text-center py-3" style="color: var(--text-muted);">Analyzing patterns...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="upgradePage" class="upgrade-page p-4 md:p-6 max-w-7xl mx-auto w-full">
+            <div class="text-center mb-10">
+                <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-3" style="color: var(--text-main);">
+                    Unlock Your <span class="gradient-text">Full Potential</span>
+                </h1>
+                <p class="text-base max-w-2xl mx-auto" style="color: var(--text-muted);">
+                    Upgrade to TaskFlow Pro and let AI supercharge your productivity with unlimited tasks, deep insights, and smart automation.
+                </p>
+            </div>
+            <div class="max-w-md mx-auto mb-12">
+                <div class="upgrade-card">
+                    <h3 class="text-2xl font-extrabold mb-2" style="color: var(--text-main);">Upgrade to Pro</h3>
+                    <p class="text-sm mb-5" style="color: var(--text-muted);">Unlock AI insights & unlimited tasks.</p>
+                    <button class="upgrade-btn" onclick="alert('Redirecting to payment gateway... (Demo)')">Upgrade Now</button>
+                    <p class="text-xs mt-3" style="color: var(--text-muted);">No credit card required for trial</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div class="plan-card">
+                    <h3 class="text-lg font-bold mb-1" style="color: var(--text-main);">Free</h3>
+                    <p class="text-sm mb-4" style="color: var(--text-muted);">For getting started</p>
+                    <div class="text-3xl font-bold mb-4" style="color: var(--text-main);">₹0<span class="text-sm font-normal" style="color: var(--text-muted);">/month</span></div>
+                    <ul class="space-y-2 text-sm mb-6" style="color: var(--text-muted);">
+                        <li><span class="feature-check">✓</span> Up to 20 tasks</li>
+                        <li><span class="feature-check">✓</span> Basic AI suggestions</li>
+                        <li><span class="feature-check">✓</span> Calendar view</li>
+                        <li><span class="feature-check">✓</span> Standard support</li>
+                    </ul>
+                    <button class="w-full py-2.5 rounded-lg font-semibold text-sm transition-all" style="background-color: var(--bg-main); color: var(--text-main); border: 1px solid var(--card-border);">Current Plan</button>
+                </div>
+                <div class="plan-card popular">
+                    <h3 class="text-lg font-bold mb-1" style="color: var(--accent-2);">Pro</h3>
+                    <p class="text-sm mb-4" style="color: var(--text-muted);">For power users</p>
+                    <div class="text-3xl font-bold mb-4" style="color: var(--text-main);">₹499<span class="text-sm font-normal" style="color: var(--text-muted);">/month</span></div>
+                    <ul class="space-y-2 text-sm mb-6" style="color: var(--text-muted);">
+                        <li><span class="feature-check">✓</span> Unlimited tasks</li>
+                        <li><span class="feature-check">✓</span> Advanced AI insights</li>
+                        <li><span class="feature-check">✓</span> Priority engine</li>
+                        <li><span class="feature-check">✓</span> Personalized recommendations</li>
+                        <li><span class="feature-check">✓</span> Priority support</li>
+                    </ul>
+                    <button class="upgrade-btn text-sm" onclick="alert('Pro plan selected! (Demo)')">Upgrade Now</button>
+                </div>
+                <div class="plan-card">
+                    <h3 class="text-lg font-bold mb-1" style="color: var(--text-main);">Team</h3>
+                    <p class="text-sm mb-4" style="color: var(--text-muted);">For collaboration</p>
+                    <div class="text-3xl font-bold mb-4" style="color: var(--text-main);">₹999<span class="text-sm font-normal" style="color: var(--text-muted);">/month</span></div>
+                    <ul class="space-y-2 text-sm mb-6" style="color: var(--text-muted);">
+                        <li><span class="feature-check">✓</span> Everything in Pro</li>
+                        <li><span class="feature-check">✓</span> Team collaboration (up to 10)</li>
+                        <li><span class="feature-check">✓</span> Shared workspaces</li>
+                        <li><span class="feature-check">✓</span> Admin dashboard</li>
+                        <li><span class="feature-check">✓</span> Dedicated support</li>
+                    </ul>
+                    <button class="w-full py-2.5 rounded-lg font-semibold text-sm transition-all" style="background: linear-gradient(to right, var(--accent-1), var(--accent-2)); color: #fff;" onclick="alert('Team plan selected! (Demo)')">Get Team</button>
+                </div>
+            </div>
+            <div class="max-w-3xl mx-auto text-center mb-8">
+                <p class="text-xs" style="color: var(--text-muted);">🔒 Secure payment · Cancel anytime · 7-day free trial on Pro</p>
+            </div>
+            <div class="text-center">
+                <button onclick="hideUpgradePage()" class="text-sm font-medium transition-all hover:underline" style="color: var(--accent-1);">← Back to Recommendations</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function setTheme(themeName) {
+            document.documentElement.setAttribute('data-theme', themeName);
+            localStorage.setItem('taskflow-theme', themeName);
+            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+            const btn = document.querySelector(`.theme-btn[onclick="setTheme('${themeName}')"]`);
+            if (btn) btn.classList.add('active');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function showUpgradePage() {
+            document.getElementById('recommendationsPage').classList.add('hidden');
+            document.getElementById('upgradePage').classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function hideUpgradePage() {
+            document.getElementById('upgradePage').classList.remove('active');
+            document.getElementById('recommendationsPage').classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            const link = document.querySelector('a[href="recommendation.html"]');
+            if (link) link.classList.add('active');
+            document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function getTypeStyle(type) {
+            if (type === "HIGH IMPACT") return { icon: "🚀", badgeBg: "var(--accent-1)", badgeColor: "#000" };
+            if (type === "BREAK IT DOWN") return { icon: "🧩", badgeBg: "var(--accent-2)", badgeColor: "#fff" };
+            if (type === "TIME OPTIMIZATION") return { icon: "⏰", badgeBg: "#f59e0b", badgeColor: "#000" };
+            if (type === "WELLNESS") return { icon: "🧘", badgeBg: "#10b981", badgeColor: "#000" };
+            if (type === "DEADLINE ALERT") return { icon: "🚨", badgeBg: "#ef4444", badgeColor: "#fff" };
+            if (type === "PRODUCTIVITY") return { icon: "📈", badgeBg: "var(--accent-1)", badgeColor: "#000" };
+            if (type === "AI TIP") return { icon: "💡", badgeBg: "#eab308", badgeColor: "#000" };
+            return { icon: "💡", badgeBg: "var(--accent-1)", badgeColor: "#000" };
+        }
+
+        async function loadRecommendations() {
+            const container = document.getElementById('recommendations-container');
+            const insightsContainer = document.getElementById('insights-container');
+            if (!container) return;
+
+            try {
+                const response = await fetch('http://127.0.0.1:8080/api/recommendations');
+                if (!response.ok) throw new Error("Server error");
+                const data = await response.json();
+
+                const confEl = document.getElementById('aiConfidence');
+                if (confEl) confEl.innerText = data.confidence + '%';
+
+                const lastUpdEl = document.getElementById('lastUpdated');
+                if (lastUpdEl) lastUpdEl.innerText = "Updated just now";
+
+                const recs = data.recommendations || [];
+
+                if (recs.length === 0) {
+                    container.innerHTML = '<p class="text-sm text-center py-4 col-span-2" style="color: var(--text-muted);">No recommendations yet. Add some tasks first!</p>';
+                    if (insightsContainer) insightsContainer.innerHTML = '<p class="text-sm text-center py-3" style="color: var(--text-muted);">Add tasks to see AI insights.</p>';
+                    return;
+                }
+
+                let html = '';
+                let topPriorityRec = null, focusRec = null, tipRec = null;
+
+                recs.forEach(rec => {
+                    const style = getTypeStyle(rec.type);
+
+                    if (!topPriorityRec && rec.type === "HIGH IMPACT") topPriorityRec = rec;
+                    if (!focusRec && rec.type === "TIME OPTIMIZATION") focusRec = rec;
+                    if (!tipRec && rec.type === "BREAK IT DOWN") tipRec = rec;
+
+                    html += `
+                        <div class="rec-card rounded-2xl p-5 flex flex-col gap-4" style="background-color: var(--bg-nav); border: 1px solid var(--card-border); box-shadow: var(--glossy-shadow);">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-2xl">${style.icon}</span>
+                                    <span class="text-xs font-bold px-2 py-1 rounded-full" style="background: ${style.badgeBg}; color: ${style.badgeColor};">${rec.type}</span>
+                                </div>
+                                <span class="text-xs" style="color: var(--text-muted);">${rec.confidence}% match</span>
+                            </div>
+                            <h3 class="text-base font-bold" style="color: var(--text-main);">${rec.title}</h3>
+                            <p class="text-sm leading-relaxed" style="color: var(--text-muted);">${rec.description}</p>
+                            <div class="flex items-center justify-between mt-1">
+                                <span class="text-xs font-medium px-2 py-1 rounded-md" style="background: var(--bg-main); color: var(--accent-1);">${rec.meta}</span>
+                                <button class="text-xs font-bold px-4 py-1.5 rounded-lg transition-all hover:opacity-80" style="background: ${style.badgeBg}; color: ${style.badgeColor};">${rec.action}</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+
+                if (topPriorityRec) {
+                    const el = document.getElementById('topPriorityText');
+                    if (el) el.innerText = topPriorityRec.title;
+                }
+                if (focusRec) {
+                    const el = document.getElementById('focusBlockText');
+                    if (el) el.innerText = focusRec.meta;
+                } else if (topPriorityRec) {
+                    const el = document.getElementById('focusBlockText');
+                    if (el) el.innerText = "Based on top priority task";
+                }
+                if (tipRec) {
+                    const el = document.getElementById('aiTipText');
+                    if (el) el.innerText = tipRec.title;
+                } else {
+                    const el = document.getElementById('aiTipText');
+                    if (el) el.innerText = "Keep up the momentum!";
+                }
+
+                if (insightsContainer) {
+                    let insightHtml = '';
+                    const borderColors = ['var(--accent-1)', 'var(--accent-2)', '#f59e0b'];
+                    recs.slice(0, 3).forEach((rec, i) => {
+                        const style = getTypeStyle(rec.type);
+                        insightHtml += `
+                            <div class="flex items-start gap-4 p-3 rounded-xl transition-all hover:bg-[var(--bg-main)]" style="border-left: 3px solid ${borderColors[i % 3]};">
+                                <div class="text-xl">${style.icon}</div>
+                                <div>
+                                    <p class="text-sm font-medium" style="color: var(--text-main);">${rec.title}</p>
+                                    <p class="text-xs" style="color: var(--text-muted);">${rec.meta} — Confidence ${rec.confidence}%</p>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    insightsContainer.innerHTML = insightHtml;
+                }
+
+            } catch (error) {
+                console.warn("C++ Backend offline. Showing demo data.");
+                
+                const confEl = document.getElementById('aiConfidence');
+                if (confEl) confEl.innerText = "0%";
+
+                container.innerHTML = `
+                    <div class="rec-card rounded-2xl p-5 flex flex-col gap-4" style="background-color: var(--bg-nav); border: 1px solid var(--card-border);">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl">⚠️</span>
+                                <span class="text-xs font-bold px-2 py-1 rounded-full" style="background: #ef4444; color: #fff;">SERVER OFFLINE</span>
+                            </div>
+                        </div>
+                        <h3 class="text-base font-bold" style="color: var(--text-main);">C++ Server is offline</h3>
+                        <p class="text-sm leading-relaxed" style="color: var(--text-muted);">Start the C++ server on port 8080 to see live AI recommendations based on your tasks.</p>
+                    </div>
+                `;
+
+                const lastUpdEl = document.getElementById('lastUpdated');
+                if (lastUpdEl) lastUpdEl.innerText = "Server offline";
+                
+                if (insightsContainer) {
+                    insightsContainer.innerHTML = '<p class="text-sm text-center py-3 text-red-500">C++ Server is offline. Start server to see live insights.</p>';
+                }
+            }
+        }
+
+        window.onload = () => {
+            const savedTheme = localStorage.getItem('taskflow-theme') || 'night';
+            setTheme(savedTheme);
+            loadRecommendations();
+            setInterval(loadRecommendations, 10000);
+        };
+    </script>
+</body>
+</html>
