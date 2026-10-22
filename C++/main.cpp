@@ -10,6 +10,7 @@
 #include <ctime>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
@@ -39,6 +40,19 @@ int getDigitFrequencyScore(const string& s) {
 string toLowerCase(string str) {
     transform(str.begin(), str.end(), str.begin(), ::tolower);
     return str;
+}
+
+string escapeJson(const string& s) {
+    string out;
+    for (char c : s) {
+        if (c == '"') out += "\\\"";
+        else if (c == '\\') out += "\\\\";
+        else if (c == '\n') out += "\\n";
+        else if (c == '\r') out += "\\r";
+        else if (c == '\t') out += "\\t";
+        else out += c;
+    }
+    return out;
 }
 
 class Task {
@@ -188,13 +202,13 @@ void generateRecommendations() {
         else if (days == 1) timeMsg = "due tomorrow";
 
         addRecommendation(new Recommendation("HIGH IMPACT",
-            "Start \"" + topTask->title + "\" now",
+            "Start " + topTask->title + " now",
             "This task has the highest priority score (" + to_string(topScore) +
             ") and is " + timeMsg + ". Starting now reduces deadline stress.",
             "Add to schedule", "Priority: " + topTask->priority, min(95, topScore)));
 
         addRecommendation(new Recommendation("BREAK IT DOWN",
-            "Split \"" + topTask->title + "\"",
+            "Split " + topTask->title,
             "Breaking large tasks into 3-4 smaller steps increases completion rate by 2x. "
             "Try: Research (30m), Draft (1h), Review (30m).",
             "Create subtasks", topTask->priority, 88));
@@ -241,9 +255,9 @@ string getTasksJson() {
     string json = "["; TaskNode* temp = head; bool first = true;
     while (temp) {
         if (!first) json += ",";
-        json += "{\"title\":\"" + temp->task->title + "\",\"description\":\""
-              + temp->task->description + "\",\"dueDate\":\"" + temp->task->dueDate
-              + "\",\"priority\":\"" + temp->task->priority + "\"}";
+        json += "{\"title\":\"" + escapeJson(temp->task->title) + "\",\"description\":\""
+              + escapeJson(temp->task->description) + "\",\"dueDate\":\"" + escapeJson(temp->task->dueDate)
+              + "\",\"priority\":\"" + escapeJson(temp->task->priority) + "\"}";
         first = false; temp = temp->next;
     }
     json += "]"; return json;
@@ -291,10 +305,10 @@ string getProcessingJson() {
         string tInfo = "Just now";
         if (temp->task->status == "Completed") tInfo = "Completed just now";
         if (temp->task->status == "Failed") tInfo = "Failed just now";
-        json += "{\"id\":\"" + id + "\",\"title\":\"" + temp->task->title
-              + "\",\"status\":\"" + temp->task->status + "\",\"progress\":"
+        json += "{\"id\":\"" + id + "\",\"title\":\"" + escapeJson(temp->task->title)
+              + "\",\"status\":\"" + escapeJson(temp->task->status) + "\",\"progress\":"
               + to_string(temp->task->progress) + ",\"statusText\":\""
-              + temp->task->statusMsg + "\",\"timeInfo\":\"" + tInfo + "\"}";
+              + escapeJson(temp->task->statusMsg) + "\",\"timeInfo\":\"" + escapeJson(tInfo) + "\"}";
         first = false; index++; temp = temp->next;
     }
     json += "]"; return json;
@@ -307,9 +321,9 @@ string getRankedTasksJson(int uW, int iW, int eW) {
     string json = "["; temp = head; bool first = true; int rank = 1;
     while (temp) {
         if (!first) json += ",";
-        json += "{\"rank\":" + to_string(rank) + ",\"title\":\"" + temp->task->title
-              + "\",\"dueDate\":\"" + temp->task->dueDate + "\",\"priority\":\""
-              + temp->task->priority + "\",\"score\":" + to_string(temp->task->score) + "}";
+        json += "{\"rank\":" + to_string(rank) + ",\"title\":\"" + escapeJson(temp->task->title)
+              + "\",\"dueDate\":\"" + escapeJson(temp->task->dueDate) + "\",\"priority\":\""
+              + escapeJson(temp->task->priority) + "\",\"score\":" + to_string(temp->task->score) + "}";
         first = false; rank++; temp = temp->next;
     }
     json += "]"; return json;
@@ -331,16 +345,16 @@ string getCalendarJson() {
     }
     for (const string& date : dates) {
         if (!firstDate) json += ",";
-        json += "\"" + date + "\":[";
+        json += "\"" + escapeJson(date) + "\":[";
         temp = head;
         bool firstTask = true;
         while (temp) {
             if (temp->task->dueDate == date) {
                 if (!firstTask) json += ",";
                 json += "{";
-                json += "\"title\":\"" + temp->task->title + "\",";
-                json += "\"priority\":\"" + temp->task->priority + "\",";
-                json += "\"description\":\"" + temp->task->description + "\"";
+                json += "\"title\":\"" + escapeJson(temp->task->title) + "\",";
+                json += "\"priority\":\"" + escapeJson(temp->task->priority) + "\",";
+                json += "\"description\":\"" + escapeJson(temp->task->description) + "\"";
                 json += "}";
                 firstTask = false;
             }
@@ -360,11 +374,11 @@ string getRecommendationsJson(int* totalConfidence, int* recCount) {
     while (temp) {
         if (!first) json += ",";
         json += "{";
-        json += "\"type\":\"" + temp->rec->type + "\",";
-        json += "\"title\":\"" + temp->rec->title + "\",";
-        json += "\"description\":\"" + temp->rec->description + "\",";
-        json += "\"action\":\"" + temp->rec->action + "\",";
-        json += "\"meta\":\"" + temp->rec->meta + "\",";
+        json += "\"type\":\"" + escapeJson(temp->rec->type) + "\",";
+        json += "\"title\":\"" + escapeJson(temp->rec->title) + "\",";
+        json += "\"description\":\"" + escapeJson(temp->rec->description) + "\",";
+        json += "\"action\":\"" + escapeJson(temp->rec->action) + "\",";
+        json += "\"meta\":\"" + escapeJson(temp->rec->meta) + "\",";
         json += "\"confidence\":" + to_string(temp->rec->confidence);
         json += "}";
         totalConf += temp->rec->confidence; count++;
@@ -432,13 +446,15 @@ int main() {
             string response = "HTTP/1.1 200 OK\r\n"
                               "Access-Control-Allow-Origin: *\r\n"
                               "Access-Control-Allow-Headers: Content-Type\r\n"
-                              "Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n\r\n";
+                              "Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n"
+                              "Connection: close\r\n\r\n";
             send(new_socket, response.c_str(), response.length(), 0);
             closesocket(new_socket); continue;
         }
 
         string corsHeaders = "Access-Control-Allow-Origin: *\r\n"
-                             "Content-Type: application/json\r\n";
+                             "Content-Type: application/json\r\n"
+                             "Connection: close\r\n"; // Added Connection: close
 
         if (request.find("POST /api/add-task") != string::npos) {
             size_t bodyPos = request.find("\r\n\r\n");
@@ -491,7 +507,9 @@ int main() {
                               "\r\n\r\n" + jsonResponse;
             send(new_socket, response.c_str(), response.length(), 0);
         }
-        else if (request.find("GET /api/recommendations") != string::npos) {
+        
+        // FIXED: Made URL matching flexible for Recommendations
+        else if (request.find("recommendations") != string::npos) {
             cout << "[Recommendations] page ne data maanga!" << endl;
             int totalConf = 0, recCount = 0;
             string recsJson = getRecommendationsJson(&totalConf, &recCount);
@@ -500,11 +518,15 @@ int main() {
             jsonResponse += "\"count\":" + to_string(recCount) + ",";
             jsonResponse += "\"recommendations\":" + recsJson;
             jsonResponse += "}";
+            
+            cout << "[DEBUG] Sending JSON: " << jsonResponse << endl; // Debug print
+            
             string response = "HTTP/1.1 200 OK\r\n" + corsHeaders +
                               "Content-Length: " + to_string(jsonResponse.length()) +
                               "\r\n\r\n" + jsonResponse;
             send(new_socket, response.c_str(), response.length(), 0);
         }
+        
         else if (request.find("GET /api/calendar") != string::npos) {
             cout << "[Calendar] page ne data maanga!" << endl;
             string jsonResponse = getCalendarJson();
@@ -515,12 +537,12 @@ int main() {
         }
         else if (request.find("GET /api/settings") != string::npos) {
             string json = "{";
-            json += "\"fullName\":\""      + g_settings.fullName      + "\",";
-            json += "\"email\":\""         + g_settings.email         + "\",";
-            json += "\"theme\":\""         + g_settings.theme         + "\",";
-            json += "\"language\":\""      + g_settings.language      + "\",";
-            json += "\"timezone\":\""      + g_settings.timezone      + "\",";
-            json += "\"priorityModel\":\"" + g_settings.priorityModel + "\",";
+            json += "\"fullName\":\""      + escapeJson(g_settings.fullName)      + "\",";
+            json += "\"email\":\""         + escapeJson(g_settings.email)         + "\",";
+            json += "\"theme\":\""         + escapeJson(g_settings.theme)         + "\",";
+            json += "\"language\":\""      + escapeJson(g_settings.language)      + "\",";
+            json += "\"timezone\":\""      + escapeJson(g_settings.timezone)      + "\",";
+            json += "\"priorityModel\":\"" + escapeJson(g_settings.priorityModel) + "\",";
             json += "\"autoSchedule\":"   + string(g_settings.autoSchedule   ? "true" : "false") + ",";
             json += "\"smartReminders\":" + string(g_settings.smartReminders ? "true" : "false") + ",";
             json += "\"emailNotif\":"     + string(g_settings.emailNotif     ? "true" : "false") + ",";
@@ -558,10 +580,7 @@ int main() {
                 g_settings.pushNotif      = extractJsonBool(body, "pushNotif");
                 g_settings.aiSuggestions  = extractJsonBool(body, "aiSuggestions");
 
-                cout << "[Settings] Updated -> " << g_settings.fullName
-                     << " | theme=" << g_settings.theme
-                     << " | lang="  << g_settings.language
-                     << " | tz="    << g_settings.timezone << endl;
+                cout << "[Settings] Updated -> " << g_settings.fullName << endl;
 
                 string json = "{\"status\":\"success\",\"message\":\"Settings saved!\"}";
                 string response = "HTTP/1.1 200 OK\r\n" + corsHeaders +

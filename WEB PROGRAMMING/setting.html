@@ -259,10 +259,6 @@ body {
       Calendar View
     </a>
     
-    <a href="task-history.html" class="nav-item">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      Task History
-    </a>
     <a href="setting.html" class="nav-item active">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       Settings
@@ -443,34 +439,6 @@ body {
           </div>
         </div>
 
-        <div class="settings-card">
-          <h2 class="text-lg font-semibold mb-4 flex items-center gap-2" style="color:var(--text-main);">
-            <span style="color:var(--accent-1);">🔒</span> Security
-          </h2>
-          <div class="space-y-3">
-            <button class="btn-outline w-full text-left flex items-center justify-between">
-              Change Password <span style="color:var(--accent-1);">→</span>
-            </button>
-            <button class="btn-outline w-full text-left flex items-center justify-between">
-              Two-Factor Authentication <span style="color:var(--accent-1);">→</span>
-            </button>
-            <button class="btn-outline w-full text-left flex items-center justify-between">
-              Active Sessions <span style="color:var(--accent-1);">→</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="settings-card" style="border-color:rgba(255,42,0,.4);">
-          <h2 class="text-lg font-semibold mb-3 flex items-center gap-2" style="color:#ff5e5e;">
-            <span>⚠️</span> Danger Zone
-          </h2>
-          <p class="settings-desc mb-4">Once you delete your account, there is no going back.</p>
-          <button class="w-full py-2.5 rounded-lg font-semibold text-sm transition-all hover:opacity-90"
-                  style="background-color:rgba(255,42,0,.15); color:#ff5e5e; border:1px solid rgba(255,42,0,.3);">
-            Delete Account
-          </button>
-        </div>
-
       </div>
     </div>
 
@@ -561,6 +529,7 @@ body {
 <script>
 const API = 'http://localhost:8080';
 
+// Default settings
 let settings = {
   fullName: 'Samarpan',
   email: 'samarpan@kiit.ac.in',
@@ -575,6 +544,7 @@ let settings = {
   aiSuggestions: true
 };
 
+// Toast Notification Function
 function showToast(msg, ok = true) {
   const t = document.createElement('div');
   t.className = 'toast ' + (ok ? 'success' : 'error');
@@ -583,47 +553,76 @@ function showToast(msg, ok = true) {
   setTimeout(() => t.remove(), 2500);
 }
 
-function setTheme(t) {
-  document.documentElement.setAttribute('data-theme', t);
-  localStorage.setItem('taskflow-theme', t);
-  settings.theme = t;
-  document.querySelectorAll('.theme-btn').forEach(b => {
-    b.classList.remove('active');
-    const oc = b.getAttribute('onclick') || '';
-    if (oc.includes(`'${t}'`)) b.classList.add('active');
-  });
-  saveSettings(true);
-}
-
-function toggleSetting(key, el) {
-  el.classList.toggle('active');
-  settings[key] = el.classList.contains('active');
-  saveSettings(true);
-}
-
-async function saveProfile() {
-  settings.fullName      = document.getElementById('fullName').value.trim();
-  settings.email         = document.getElementById('email').value.trim();
-  settings.language      = document.getElementById('language').value;
-  settings.timezone      = document.getElementById('timezone').value;
-  settings.priorityModel = document.getElementById('priorityModel').value;
+// --- UI UPDATE HELPER ---
+// Yeh function UI mein saare settings ko update karta hai
+function applySettingsToUI() {
+  document.getElementById('fullName').value      = settings.fullName;
+  document.getElementById('email').value         = settings.email;
+  document.getElementById('language').value      = settings.language;
+  document.getElementById('timezone').value      = settings.timezone;
+  document.getElementById('priorityModel').value = settings.priorityModel;
 
   if (settings.fullName.length > 0) {
     document.getElementById('avatarCircle').textContent = settings.fullName.charAt(0).toUpperCase();
   }
 
-  const btn = document.getElementById('saveProfileBtn');
-  btn.disabled = true;
-  btn.textContent = 'Saving...';
-  const ok = await saveSettings(false);
-  btn.disabled = false;
-  btn.textContent = 'Save Changes';
+  ['autoSchedule', 'smartReminders', 'emailNotif', 'pushNotif', 'aiSuggestions']
+    .forEach(k => {
+      const el = document.getElementById(k);
+      if (el) el.classList.toggle('active', !!settings[k]);
+    });
 
-  if (ok) showToast('✅ Settings saved successfully!');
-  else    showToast('❌ Could not reach server', false);
+  setThemeSilent(settings.theme || 'night');
 }
 
-async function saveSettings(silent = false) {
+// --- SAVE PROFILE BUTTON LOGIC ---
+// Yeh function button click par chalta hai
+async function saveProfile() {
+  const nameVal = document.getElementById('fullName').value.trim();
+  const emailVal = document.getElementById('email').value.trim();
+
+  // Basic Validation
+  if (!nameVal || !emailVal) {
+    showToast('❌ Name and Email cannot be empty', false);
+    return;
+  }
+
+  // Collect Data
+  settings.fullName      = nameVal;
+  settings.email         = emailVal;
+  settings.language      = document.getElementById('language').value;
+  settings.timezone      = document.getElementById('timezone').value;
+  settings.priorityModel = document.getElementById('priorityModel').value;
+
+  // 1. Update UI Instantly
+  document.getElementById('avatarCircle').textContent = settings.fullName.charAt(0).toUpperCase();
+
+  // 2. Save to LocalStorage (Fallback/Offline Support)
+  localStorage.setItem('taskflow-settings', JSON.stringify(settings));
+
+  // 3. Button Loading State
+  const btn = document.getElementById('saveProfileBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  // 4. Try to Save to Server API
+  const ok = await saveSettingsToServer();
+
+  // 5. Reset Button
+  btn.disabled = false;
+  btn.textContent = originalText;
+
+  // 6. Show Success Message
+  if (ok) {
+    showToast('✅ Settings saved to server!');
+  } else {
+    showToast('✅ Settings saved locally! (Server offline)');
+  }
+}
+
+// API Save Function
+async function saveSettingsToServer() {
   try {
     const res = await fetch(`${API}/api/settings`, {
       method: 'POST',
@@ -633,43 +632,53 @@ async function saveSettings(silent = false) {
     const data = await res.json();
     return data.status === 'success';
   } catch (e) {
-    if (!silent) console.error('Save failed:', e);
+    console.warn('Server unreachable, saved to LocalStorage instead.');
     return false;
   }
 }
 
+// --- LOAD SETTINGS ON PAGE START ---
 async function loadSettings() {
+  // 1. Load from LocalStorage First (Instantly)
+  const localData = localStorage.getItem('taskflow-settings');
+  if (localData) {
+    try {
+      Object.assign(settings, JSON.parse(localData));
+    } catch(e) {}
+  }
+  applySettingsToUI();
+
+  // 2. Try to Fetch fresh data from Server
   try {
     const res = await fetch(`${API}/api/settings`);
+    if (!res.ok) throw new Error("Server error");
+    
     const data = await res.json();
-
     Object.assign(settings, data);
-
-    document.getElementById('fullName').value      = settings.fullName;
-    document.getElementById('email').value         = settings.email;
-    document.getElementById('language').value      = settings.language;
-    document.getElementById('timezone').value      = settings.timezone;
-    document.getElementById('priorityModel').value = settings.priorityModel;
-
-    if (settings.fullName.length > 0) {
-      document.getElementById('avatarCircle').textContent =
-        settings.fullName.charAt(0).toUpperCase();
-    }
-
-    ['autoSchedule', 'smartReminders', 'emailNotif', 'pushNotif', 'aiSuggestions']
-      .forEach(k => {
-        const el = document.getElementById(k);
-        if (el) el.classList.toggle('active', !!settings[k]);
-      });
-
-    setThemeSilent(settings.theme || 'night');
-
+    
+    // Update UI and LocalStorage with fresh server data
+    applySettingsToUI();
+    localStorage.setItem('taskflow-settings', JSON.stringify(settings));
+    
     console.log('✅ Settings loaded from C++ backend');
   } catch (e) {
-    console.warn('⚠ Backend offline – using localStorage defaults');
-    const saved = localStorage.getItem('taskflow-theme') || 'night';
-    setThemeSilent(saved);
+    console.warn('⚠ Backend offline – using LocalStorage data');
   }
+}
+
+// --- THEME & TOGGLE LOGIC ---
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  settings.theme = t;
+  
+  document.querySelectorAll('.theme-btn').forEach(b => {
+    b.classList.remove('active');
+    const oc = b.getAttribute('onclick') || '';
+    if (oc.includes(`'${t}'`)) b.classList.add('active');
+  });
+  
+  localStorage.setItem('taskflow-settings', JSON.stringify(settings));
+  saveSettingsToServer();
 }
 
 function setThemeSilent(t) {
@@ -681,17 +690,28 @@ function setThemeSilent(t) {
   });
 }
 
+function toggleSetting(key, el) {
+  el.classList.toggle('active');
+  settings[key] = el.classList.contains('active');
+  
+  localStorage.setItem('taskflow-settings', JSON.stringify(settings));
+  saveSettingsToServer();
+}
+
+// --- MOBILE SIDEBAR ---
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('-translate-x-full');
   document.getElementById('mobileOverlay').classList.toggle('hidden');
 }
 
+// --- UPGRADE PAGE LOGIC ---
 function showUpgradePage() {
   document.getElementById('settingsPage').classList.add('hidden');
   document.getElementById('upgradePage').classList.add('active');
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
 }
+
 function hideUpgradePage() {
   document.getElementById('upgradePage').classList.remove('active');
   document.getElementById('settingsPage').classList.remove('hidden');
@@ -701,10 +721,8 @@ function hideUpgradePage() {
   document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// Initialize on Load
 window.onload = () => {
-  const savedTheme = localStorage.getItem('taskflow-theme') || 'night';
-  setThemeSilent(savedTheme);
-
   loadSettings();
 };
 </script>
